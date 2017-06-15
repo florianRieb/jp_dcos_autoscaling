@@ -1,0 +1,57 @@
+{
+  "id": "marathon-scale-app",
+  "args":[
+    "--master", "",
+  "--max_mem_percent", "30",
+  "--max_cpu_time", "30",
+  "--trigger_mode", "or",
+  "--autoscale_multiplier", "1.5",
+  "--max_instances", "100",
+  "--marathon-app", "",
+  "--min_instances", "1",
+  "--cool-down-factor", "3",
+  "--trigger_number", "3"
+  ],
+  "cpus": 0.1,
+  "mem": 128,
+  "disk": 0,
+  "instances": 0,
+  "acceptedResourceRoles": [
+    "*"
+  ],
+  "container": {
+    "type": "DOCKER",
+    "volumes": [],
+    "docker": {
+      "image": "riedbt/marathon-scale-app:0.1",
+      "network": "BRIDGE",
+      "portMappings": [
+        {
+          "containerPort": 0,
+          "hostPort": 0,
+          "servicePort": 10103,
+          "protocol": "tcp",
+          "labels": {}
+        }
+      ],
+      "privileged": false,
+      "parameters": [],
+      "forcePullImage": false
+    }
+  },
+  "labels": {
+    "MARATHON_SINGLE_INSTANCE_APP": "true"
+  },
+  "portDefinitions": [
+    {
+      "port": 10103,
+      "protocol": "tcp",
+      "name": "default",
+      "labels": {}
+    }
+  ],
+  "upgradeStrategy": {
+    "minimumHealthCapacity": 0,
+    "maximumOverCapacity": 0
+  }
+}
