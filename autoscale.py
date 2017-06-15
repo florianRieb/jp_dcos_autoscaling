@@ -10,34 +10,15 @@ import json
 import math
 import time
 
-
-
-
-# marathon_host = input("Enter the DNS hostname or IP of your Marathon Instance : ")
-# dcos_auth_token=input("Copy Paste DCOS AUTH Token here for Permissive or Strict Mode Clusters : ")
-
-#Add own Token
-dcos_auth_token = ""
 #fix Marathon Host IP like "http://ip"
-marathon_host = ""
-
-# arathon_app = input("Enter the Marathon Application Name to Configure Autoscale for from the Marathon UI : ")
-
-# max_mem_percent = int(input("Enter the Max percent of Mem Usage averaged across all Application Instances to trigger Autoscale (ie. 80) : "))
-# max_cpu_time = int(input("Enter the Max percent of CPU Usage averaged across all Application Instances to trigger Autoscale (ie. 80) : "))
-# trigger_mode = input("Enter which metric(s) to trigger Autoscale ('and', 'or') : ")
-# autoscale_multiplier = float(input("Enter Autoscale multiplier for triggered Autoscale (ie 1.5) : "))
-# max_instances = int(input("Enter the Max instances that should ever exist for this application (ie. 20) : "))
-
-
-#trigger_number = 3 Number of cycles to avoid scaling again
-
+#marathon_host = "http://134.103.195.127"
 
 class Marathon(object):
     def __init__(self, marathon_host):
         self.name = marathon_host
         self.uri = (marathon_host)
         self.headers = {'Authorization': 'token=' + dcos_auth_token, 'Content-type': 'application/json'}
+
 
 
     def get_all_apps(self):
@@ -55,9 +36,8 @@ class Marathon(object):
             return apps
 
     def get_app_details(self, marathon_app):
-        response = requests.get(self.uri + '/service/marathon/v2/apps/' + marathon_app, headers=self.headers,
-                                verify=False).json()
-        print('Marathon Application = ' + str(response))
+        response = requests.get(self.uri + '/service/marathon/v2/apps/' + marathon_app, headers=self.headers, verify=False).json()
+        #print('Marathon Application = ' + str(response))
         if (response['app']['tasks'] == []):
             print('No task data on Marathon for App !', marathon_app)
         else:
@@ -69,7 +49,7 @@ class Marathon(object):
                 taskid = i['id']
                 hostid = i['host']
                 slaveId = i['slaveId']
-                print('DEBUG - taskId=', taskid + ' running on ' + hostid + 'which is Mesos Slave Id ' + slaveId)
+                #print('DEBUG - taskId=', taskid + ' running on ' + hostid + 'which is Mesos Slave Id ' + slaveId)
                 app_task_dict[str(taskid)] = str(slaveId)
             return app_task_dict
 
@@ -111,8 +91,7 @@ def get_task_agentstatistics(task, agent):
     # by connecting to the Mesos Agent and then making a REST call against Mesos statistics
     # Return to Statistics for the specific task for the marathon_app
     dcos_headers = {'Authorization': 'token=' + dcos_auth_token, 'Content-type': 'application/json'}
-    response = requests.get(marathon_host + '/slave/' + agent + '/monitor/statistics.json', verify=False,
-                            headers=dcos_headers, allow_redirects=True).json()
+    response = requests.get(marathon_host + '/slave/' + agent + '/monitor/statistics.json', verify=False, headers=dcos_headers, allow_redirects=True).json()
     # print ('DEBUG -- Getting Mesos Metrics for Mesos Agent =',agent)
     for i in response:
         executor_id = i['executor_id']
@@ -121,6 +100,13 @@ def get_task_agentstatistics(task, agent):
             task_stats = i['statistics']
             print('****Specific stats for task', executor_id, '=', task_stats)
             return task_stats
+
+
+def get_token():
+    with open('tokenfile') as f:
+        token = f.read()
+    f.closed
+    return str(token)
 
 
 def timer():
@@ -134,7 +120,9 @@ if __name__ == "__main__":
     print("This application tested with Python3 only")
 
     parser = argparse.ArgumentParser(description='Marathon autoscale app.')
-  #  parser.add_argument('--dcos-master', help='The DNS hostname or IP of your Marathon Instance', required=True)
+
+    parser.add_argument('--master', help='The DNS hostname or IP of your Marathon Instance', required=True)
+
     parser.add_argument('--max_mem_percent',
                              help='The Max percent of Mem Usage averaged across all Application Instances to trigger Autoscale (ie. 80)',
                              required=True, type=float)
@@ -163,7 +151,7 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
 
-
+    marathon_host = args.master
     max_mem_percent = float(args.max_mem_percent)
     max_cpu_time = float(args.max_cpu_time)
     trigger_mode = args.trigger_mode
@@ -177,6 +165,10 @@ if __name__ == "__main__":
     # Initialize variables
     cool_down = 0
     trigger_var = 0
+
+    # Add own Token
+    dcos_auth_token = ""
+    dcos_auth_token = get_token()
 
     running = 1
     while running == 1:
@@ -202,7 +194,7 @@ if __name__ == "__main__":
         # Return a dictionary comprised of the target app taskId and hostId.
         app_task_dict = aws_marathon.get_app_details(marathon_app)
         print("    Marathon  App 'tasks' for", marathon_app, "are=", app_task_dict)
-        # leere Listen erzeugen
+
         app_cpu_values = []
         app_mem_values = []
         # for k,v in Dictionarie.items()
